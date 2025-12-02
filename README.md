@@ -1,21 +1,20 @@
-BT_tutorials
-============
+# BT_tutorials
 
-Objectif
---------
-Fournir un guide unique pour realiser et lancer les tutoriels de https://www.behaviortree.dev/docs/tutorial-basics en vous appuyant sur des projets locaux similaires a `first_bt`.
+## Objectif
 
-Prerequis systeme
------------------
-- BehaviorTree.CPP v4 installe dans `/usr/local/share/behaviortree_cpp` avec la lib dans `/usr/local/lib` (detecte en 4.8.2).
-- Dependances ROS2: `ament_index_cpp` (present dans `/opt/ros/jazzy/lib`) et `tinyxml2`, `sqlite3`, `zmq` deja fournis par le systeme.
-- Outils: `cmake` >= 3.5, `g++` avec C++17.
-- Pensez a exposer les libs dynamiques avant l execution:  
+Fournir un guide unique pour réaliser et lancer les tutoriels de https://www.behaviortree.dev/docs/tutorial-basics en vous appuyant sur des projets locaux similaires à `first_bt`.
+
+## Prérequis système
+
+- BehaviorTree.CPP v4 installé dans `/usr/local/share/behaviortree_cpp` avec la lib dans `/usr/local/lib` (détecté en 4.8.2).
+- Dépendances ROS2 : `ament_index_cpp` (présent dans `/opt/ros/jazzy/lib`) et `tinyxml2`, `sqlite3`, `zmq` déjà fournies par le système.
+- Outils : `cmake` >= 3.5, `g++` avec C++17.
+- Pensez à exposer les libs dynamiques avant l’exécution :
   `export LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/jazzy/lib:$LD_LIBRARY_PATH`
 
-Arborescence proposee
----------------------
-```
+## Arborescence proposée
+
+```tree
 BT_tutorials/
   README.md
   first_bt/              # exemple de base (Sequence simple)
@@ -24,28 +23,34 @@ BT_tutorials/
     main.cpp
     my_tree.xml (ou autre nom)
     dummy_nodes.h / .cpp (vos noeuds custom)
-    build/               # genere par CMake
+    build/               # généré par CMake
 ```
 
-Lancer l exemple existant `first_bt`
-------------------------------------
-```
+## Lancer l’exemple existant `first_bt`
+
+```bash
 cd ~/BT_tutorials/first_bt
 cmake -S . -B build
 cmake --build build
-LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/jazzy/lib:$LD_LIBRARY_PATH ./build/first_tree
+./first_tree
 ```
-Sortie attendue (sequence du tutoriel de base):
-```
+Pourquoi deux commandes ?
+- `cmake -S . -B build` configure le projet et génère les fichiers de build dans `build` (out-of-source build, cache CMake propre).
+- `cmake --build build` lance la compilation en réutilisant cette configuration (appelle automatiquement le bon outil, make/ninja/MSBuild, selon le générateur).
+
+Sortie attendue (séquence du tutoriel de base) :
+
+```bash
 [ Battery: OK ]
 GripperInterface::open
 ApproachObject: approach_object
 GripperInterface::close
 ```
 
-Modele de CMakeLists.txt
-------------------------
-Utilisez ce squelette pour tout nouveau tutoriel:
+## Modèle de CMakeLists.txt
+
+Utilisez ce squelette pour tout nouveau tutoriel :
+
 ```cmake
 cmake_minimum_required(VERSION 3.5)
 project(<nom_projet>)
@@ -65,10 +70,11 @@ target_link_libraries(<binaire>
     ament_index_cpp::ament_index_cpp
 )
 ```
-Astuce: dupliquez `first_bt/CMakeLists.txt` puis remplacez le nom du projet et du binaire.
 
-Modele de `main.cpp`
---------------------
+Astuce : dupliquez `first_bt/CMakeLists.txt` puis remplacez le nom du projet et du binaire.
+
+## Modèle de `main.cpp`
+
 ```cpp
 #include "behaviortree_cpp/bt_factory.h"
 #include <filesystem>
@@ -94,8 +100,8 @@ int main()
 }
 ```
 
-Modele de fichier XML minimal
------------------------------
+## Modèle de fichier XML minimal
+
 ```xml
 <root BTCPP_format="4">
   <BehaviorTree ID="MainTree">
@@ -106,30 +112,31 @@ Modele de fichier XML minimal
   </BehaviorTree>
 </root>
 ```
+
 Adaptez les noms de noeuds aux enregistrements faits dans `main.cpp` (ou dans vos fichiers de noeuds).
 
-Procedure pour creer un nouveau tutoriel
-----------------------------------------
-1) Copier l exemple: `cp -r first_bt <nouveau_tutoriel>` puis renommez `first_tree` dans CMake et le XML selon vos besoins.  
-2) Remplacer/etendre `dummy_nodes.h` (ou creer `dummy_nodes.cpp`) avec les actions/conditions du tutoriel.  
-3) Mettre a jour `my_tree.xml` pour decrire le flux du tutoriel.  
-4) Mettre a jour `main.cpp` pour enregistrer les nouveaux noeuds et charger le bon XML.  
-5) Construire et lancer:  
-   ```
+## Procédure pour créer un nouveau tutoriel
+
+1) Copier l’exemple : `cp -r first_bt <nouveau_tutoriel>` puis renommez `first_tree` dans CMake et le XML selon vos besoins.
+2) Remplacer/étendre `dummy_nodes.h` (ou créer `dummy_nodes.cpp`) avec les actions/conditions du tutoriel.
+3) Mettre à jour `my_tree.xml` pour décrire le flux du tutoriel.
+4) Mettre à jour `main.cpp` pour enregistrer les nouveaux noeuds et charger le bon XML.
+5) Construire et lancer :
+   ```bash
    cd ~/BT_tutorials/<nouveau_tutoriel>
    cmake -S . -B build
    cmake --build build
-   LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/jazzy/lib:$LD_LIBRARY_PATH ./build/<binaire>
+   ./<binaire>
    ```
 
-Depannage rapide
-----------------
-- `libament_index_cpp.so: not found` : verifier `LD_LIBRARY_PATH=/opt/ros/jazzy/lib` avant l execution.  
-- `libbehaviortree_cpp.so: not found` : ajouter `/usr/local/lib` au `LD_LIBRARY_PATH`.  
-- `Fichier XML introuvable` : verifier que le XML est dans le meme dossier que `main.cpp` (ou adaptez le chemin).  
-- Reconfiguration necessaire apres modification de CMake: relancer `cmake -S . -B build` puis `cmake --build build`.  
-- Nettoyage minimal: supprimer ou renommer le dossier `build` si vous changez fortement la configuration.
+## Dépannage rapide
 
-Rappel
-------
-Suivez l ordre des tutoriels sur https://www.behaviortree.dev/docs/tutorial-basics et utilisez un dossier par etape. Chaque dossier reste autonome pour faciliter les essais, la compilation et l execution.
+- `libament_index_cpp.so: not found` : vérifier `LD_LIBRARY_PATH=/opt/ros/jazzy/lib` avant l’exécution.
+- `libbehaviortree_cpp.so: not found` : ajouter `/usr/local/lib` au `LD_LIBRARY_PATH`.
+- `Fichier XML introuvable` : vérifier que le XML est dans le même dossier que `main.cpp` (ou adaptez le chemin).
+- Reconfiguration nécessaire après modification de CMake : relancer `cmake -S . -B build` puis `cmake --build build`.
+- Nettoyage minimal : supprimer ou renommer le dossier `build` si vous changez fortement la configuration.
+
+## Rappel
+
+Suivez l’ordre des tutoriels sur https://www.behaviortree.dev/docs/tutorial-basics et utilisez un dossier par étape. Chaque dossier reste autonome pour faciliter les essais, la compilation et l’exécution.
