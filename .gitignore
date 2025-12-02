@@ -20,4 +20,5 @@ node_modules/
 */reactive_behaviors_tree
 */multi_xml_tree
 */pass_arguments_tree
-*/*scripting_example_tree
+*/scripting_example_tree
+*/loggers_observer_tree
