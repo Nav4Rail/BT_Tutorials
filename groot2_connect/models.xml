@@ -1,0 +1,9 @@
+<root BTCPP_format="4">
+    <TreeNodesModel>
+        <Condition ID="IsDoorClosed"/>
+        <Action ID="OpenDoor"/>
+        <Action ID="PassThroughDoor"/>
+        <Action ID="PickLock"/>
+        <Action ID="SmashDoor"/>
+    </TreeNodesModel>
+</root>
