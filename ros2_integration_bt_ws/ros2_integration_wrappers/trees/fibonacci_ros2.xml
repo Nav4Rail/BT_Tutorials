@@ -1,0 +1,14 @@
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="RootSequence">
+      <!--
+        Ce nœud appelle l'action ROS 2 /fibonacci en utilisant FibonacciRosActionNode
+        (implémentation basée sur BehaviorTree.ROS2).
+        L'entrée "order" définit la longueur de la séquence demandée.
+      -->
+      <Action ID="FibonacciRosActionNode" order="10"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
+
+
