@@ -1,8 +1,10 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/executors/single_threaded_executor.hpp"
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
@@ -17,6 +19,11 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   auto node = rclcpp::Node::make_shared("bt_fibonacci_manual_node");
+
+  // Exécuteur ROS 2 dans un thread séparé pour traiter les callbacks d'action
+  rclcpp::executors::SingleThreadedExecutor exec;
+  exec.add_node(node);
+  std::thread spin_thread([&exec]() { exec.spin(); });
 
   BT::BehaviorTreeFactory factory;
 
@@ -37,26 +44,19 @@ int main(int argc, char ** argv)
 
   BT::Tree tree = factory.createTreeFromFile(tree_file);
 
-  rclcpp::Rate rate(10.0);
+  // Tick l'arbre tant qu'il renvoie RUNNING (bloquant côté BT, mais les callbacks ROS
+  // tournent dans le thread de l'exécuteur).
+  const BT::NodeStatus status = tree.tickWhileRunning(10ms);
 
-  while (rclcpp::ok()) {
-    rclcpp::spin_some(node);
-
-    const BT::NodeStatus status = tree.tickRoot();
-    if (status == BT::NodeStatus::SUCCESS) {
-      RCLCPP_INFO(node->get_logger(), "Behavior tree finished with SUCCESS");
-      break;
-    }
-    if (status == BT::NodeStatus::FAILURE) {
-      RCLCPP_ERROR(node->get_logger(), "Behavior tree finished with FAILURE");
-      break;
-    }
-
-    rate.sleep();
+  if (status == BT::NodeStatus::SUCCESS) {
+    RCLCPP_INFO(node->get_logger(), "Behavior tree finished with SUCCESS");
+  } else if (status == BT::NodeStatus::FAILURE) {
+    RCLCPP_ERROR(node->get_logger(), "Behavior tree finished with FAILURE");
   }
+
+  exec.cancel();
+  spin_thread.join();
 
   rclcpp::shutdown();
   return 0;
 }
-
-

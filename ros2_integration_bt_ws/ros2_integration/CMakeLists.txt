@@ -14,8 +14,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(behaviortree_cpp_v3 REQUIRED)
-find_package(behaviortree_ros2 REQUIRED)
+# BehaviorTree.CPP v4 installé au niveau système (package CMake: behaviortree_cpp)
+find_package(behaviortree_cpp REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(action_tutorials_interfaces REQUIRED)
 
@@ -32,10 +32,14 @@ target_include_directories(bt_node
 ament_target_dependencies(bt_node
   rclcpp
   rclcpp_action
-  behaviortree_cpp_v3
-  behaviortree_ros2
   ament_index_cpp
   action_tutorials_interfaces
+)
+
+# Lien explicite avec la cible BehaviorTree.CPP v4
+# Utilisation de la forme « plain » pour rester cohérent avec ament_target_dependencies
+target_link_libraries(bt_node
+  behaviortree_cpp::behaviortree_cpp
 )
 
 # Installer l'exécutable
