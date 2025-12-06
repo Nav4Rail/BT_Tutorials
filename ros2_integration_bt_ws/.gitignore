@@ -1,0 +1,12 @@
+build/
+install/
+log/
+src/
+test/
+test_results/
+tmp/
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.*
+*.log.*.*.*.*

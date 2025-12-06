@@ -12,6 +12,75 @@ Fournir un guide unique pour réaliser et lancer les tutoriels de https://www.be
 - Pensez à exposer les libs dynamiques avant l’exécution :
   `export LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/jazzy/lib:$LD_LIBRARY_PATH`
 
+## Installer BehaviorTree.CPP (hors ROS)
+
+### 1. Installer les dépendances nécessaires
+
+```bash
+sudo apt update
+sudo apt install git build-essential cmake
+```
+
+### 2. Télécharger le dépôt BehaviorTree.CPP
+
+```bash
+git clone https://github.com/BehaviorTree/BehaviorTree.CPP.git
+cd BehaviorTree.CPP
+```
+
+### 3. Compiler la bibliothèque
+
+Créer un dossier de build :
+
+```bash
+mkdir build && cd build
+```
+
+Configurer le projet :
+
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release
+```
+
+Compiler :
+
+```bash
+make -j$(nproc)
+```
+
+### 4. Installer la bibliothèque sur le système
+
+```bash
+sudo make install
+```
+
+Par défaut, cela installe les fichiers ici :
+
+* Headers → `/usr/local/include/behaviortree_cpp/`
+* Bibliothèques → `/usr/local/lib/`
+* Fichiers CMake → `/usr/local/lib/cmake/behaviortree_cpp/`
+
+CMake pourra ensuite les trouver automatiquement via :
+
+```cmake
+find_package(behaviortree_cpp REQUIRED)
+```
+
+---
+
+### Vérifier l’installation
+
+```bash
+ldconfig -p | grep behaviortree
+```
+
+Ou vérifier la présence du fichier :
+
+```
+/usr/local/lib/libbehaviortree_cpp.so
+```
+
+
 ## Arborescence proposée
 
 ```tree
