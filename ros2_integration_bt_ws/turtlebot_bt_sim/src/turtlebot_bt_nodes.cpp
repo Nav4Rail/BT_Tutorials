@@ -37,15 +37,16 @@ public:
     twist.linear.x = 0.0;
     twist.angular.z = 0.0;
 
-    rclcpp::Rate rate(10.0);
-    const auto start = handle_->node->now();
+    rclcpp::WallRate rate(10.0);
+    const auto start = std::chrono::steady_clock::now();
+    const auto max_duration = std::chrono::duration<double>(duration);
 
     RCLCPP_INFO(handle_->node->get_logger(),
                 "Idle: duration=%.2f s",
                 duration);
 
     while (rclcpp::ok() &&
-           (handle_->node->now() - start).seconds() < duration) {
+           (std::chrono::steady_clock::now() - start) < max_duration) {
       handle_->cmd_vel_pub->publish(twist);
       rate.sleep();
     }
@@ -97,15 +98,16 @@ public:
     auto twist = geometry_msgs::msg::Twist();
     twist.linear.x = speed;
 
-    rclcpp::Rate rate(10.0);
-    const auto start = handle_->node->now();
+    rclcpp::WallRate rate(10.0);
+    const auto start = std::chrono::steady_clock::now();
+    const auto max_duration = std::chrono::duration<double>(duration);
 
     RCLCPP_INFO(handle_->node->get_logger(),
                 "DriveForward: speed=%.2f m/s, duration=%.2f s",
                 speed, duration);
 
     while (rclcpp::ok() &&
-           (handle_->node->now() - start).seconds() < duration) {
+           (std::chrono::steady_clock::now() - start) < max_duration) {
       handle_->cmd_vel_pub->publish(twist);
       rate.sleep();
     }
@@ -156,15 +158,16 @@ public:
     auto twist = geometry_msgs::msg::Twist();
     twist.angular.z = angular_speed;
 
-    rclcpp::Rate rate(10.0);
-    const auto start = handle_->node->now();
+    rclcpp::WallRate rate(10.0);
+    const auto start = std::chrono::steady_clock::now();
+    const auto max_duration = std::chrono::duration<double>(duration);
 
     RCLCPP_INFO(handle_->node->get_logger(),
                 "Rotate: angular_speed=%.2f rad/s, duration=%.2f s",
                 angular_speed, duration);
 
     while (rclcpp::ok() &&
-           (handle_->node->now() - start).seconds() < duration) {
+           (std::chrono::steady_clock::now() - start) < max_duration) {
       handle_->cmd_vel_pub->publish(twist);
       rate.sleep();
     }
