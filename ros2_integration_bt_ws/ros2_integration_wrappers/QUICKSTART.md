@@ -1,66 +1,46 @@
-## QUICKSTART – BT + ROS 2 Fibonacci
+## QUICKSTART – Client BT Fibonacci via BehaviorTree.ROS2
 
-Ce mini‑projet montre deux façons de connecter **BehaviorTree.CPP** à un serveur d’action ROS 2 Fibonacci :
+Ce package montre comment utiliser **BehaviorTree.ROS2** pour créer un **client d’action BehaviorTree.CPP** qui appelle le serveur d’action ROS 2 **Fibonacci** (du tutoriel officiel ROS 2).
 
-- **Approche 1 – Client manuel** (`ros2_integration`)  
-- **Approche 2 – Client via BehaviorTree.ROS2** (`ros2_integration_wrappers`)
+- **Idée générale**  
+  - Un nœud BT (`bt_node_wrappers`) charge un arbre XML (`fibonacci_ros2.xml`).  
+  - L’arbre contient un nœud d’action `FibonacciRosActionNode` (wrapper BehaviorTree.ROS2).  
+  - Ce nœud envoie un goal à `/fibonacci`, attend le résultat et renvoie SUCCESS / FAILURE à l’arbre BT.
 
 ---
 
 ### 1. Pré‑requis
 
-- ROS 2 Humble correctement installé (`/opt/ros/humble`).
-- Un workspace ROS 2 principal pour le **serveur d’action Fibonacci**, par ex. `~/ros2_ws`, qui suit le tutoriel officiel ROS 2 Humble C++ :  
-  [Writing an Action Server and Client (C++)](https://docs.ros.org/en/humble/Tutorials/Intermediate/Writing-an-Action-Server-Client/Cpp.html)
-- **BehaviorTree.CPP** déjà installé au niveau système (comme décrit dans `ros2_integration_bt_ws/README.md`).
-
-#### 1.1. Installer BehaviorTree.ROS2
-
-BehaviorTree.ROS2 fournit le package CMake `behaviortree_ros2` utilisé par `ros2_integration_wrappers`.  
-Il doit être présent dans *un* workspace ROS 2 (par exemple le workspace principal `~/ros2_ws`) :
-
-```bash
-cd ~/ros2_ws/src
-git clone https://github.com/BehaviorTree/BehaviorTree.ROS2.git
-
-
-source /opt/ros/humble/setup.bash
-cd ~/ros2_ws
-colcon build --packages-select btcpp_ros2_interfaces behaviortree_ros2
-source install/setup.bash
-```
-
-Après cette étape, CMake peut faire `find_package(behaviortree_ros2 REQUIRED)` dans les autres workspaces.
+- ROS 2 Humble installé (`/opt/ros/humble`).
+- Workspace principal `~/ros2_ws` avec :
+  - le tutoriel **action Fibonacci** compilé :
+    - package `action_tutorials_cpp`,
+    - action `action_tutorials_interfaces/action/Fibonacci`.
+  - **BehaviorTree.ROS2** installé :
+    - packages `btcpp_ros2_interfaces` et `behaviortree_ros2` buildés, comme décrit dans `ros2_integration_bt_ws/QUICKSTART.md`.
+- Ce workspace BT : `.../BT_Tutorials/ros2_integration_bt_ws` avec le package `ros2_integration_wrappers`.
 
 ---
 
-### 2. Workspace BT – Compilation
+### 2. Compilation du package
 
-Workspace BT :
-
-```bash
-cd <path>/BT_Tutorials/ros2_integration_bt_ws
-```
-
-S'assurer d’abord que ton environnement ROS 2 (et éventuellement `~/ros2_ws`) est sourcé dans ce terminal :
+Dans un terminal sourcé ROS 2 + workspace principal :
 
 ```bash
 source /opt/ros/humble/setup.bash
 source ~/ros2_ws/install/setup.bash
-```
 
-Puis compiler les deux packages BT :
+cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws
 
-```bash
-colcon build --packages-select ros2_integration ros2_integration_wrappers
+colcon build --packages-select ros2_integration_wrappers
 source install/setup.bash
 ```
 
 ---
 
-### 3. Lancer le serveur d’action Fibonacci
+### 3. Lancer le serveur d’action Fibonacci (tutoriel ROS 2)
 
-Dans un **autre terminal** (sourcé avec ROS 2 + `~/ros2_ws`) :
+Dans un **autre terminal**, aussi sourcé avec ROS 2 + `~/ros2_ws` :
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -69,31 +49,15 @@ source ~/ros2_ws/install/setup.bash
 ros2 run action_tutorials_cpp fibonacci_action_server
 ```
 
-Ce serveur est celui du tutoriel officiel et fournit l’action `action_tutorials_interfaces/action/Fibonacci` (https://docs.ros.org/en/humble/Tutorials/Intermediate/Writing-an-Action-Server-Client/Cpp.html).
+Ce nœud fournit l’action :
+- Type : `action_tutorials_interfaces/action/Fibonacci`  
+- Nom : `/fibonacci`
 
 ---
 
-### 4. Approche 1 – Client BT manuel
+### 4. Lancer le client BT basé sur BehaviorTree.ROS2
 
-Dans un terminal où **le workspace BT est sourcé** :
-
-```bash
-source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
-cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws
-source install/setup.bash
-
-ros2 run ros2_integration bt_node
-```
-
-- L’arbre XML utilisé est `ros2_integration/trees/fibonacci_manual.xml`.  
-- Le nœud d’action est `FibonacciActionNode` (client `rclcpp_action` « écrit à la main »).
-
----
-
-### 5. Approche 2 – Client BT via BehaviorTree.ROS2
-
-Dans un terminal également sourcé (ROS 2 + `~/ros2_ws` + workspace BT) :
+Dans un terminal où le workspace BT est sourcé :
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -104,9 +68,93 @@ source install/setup.bash
 ros2 run ros2_integration_wrappers bt_node_wrappers
 ```
 
-- L’arbre XML utilisé est `ros2_integration_wrappers/trees/fibonacci_ros2.xml`.  
-- Le nœud d’action est `FibonacciRosActionNode`, dérivé de `BT::RosActionNode` (BehaviorTree.ROS2).
+- Le nœud crée un `rclcpp::Node` et un `BT::BehaviorTreeFactory`.
+- Il enregistre `FibonacciRosActionNode` comme nœud d’action BT.
+- Il charge `ros2_integration_wrappers/trees/fibonacci_ros2.xml` via `ament_index_cpp`.
+- L’arbre ticke jusqu’à SUCCESS / FAILURE.
 
-Les deux approches devraient envoyer un goal à `/fibonacci` et terminer avec `SUCCESS` si le serveur renvoie correctement la séquence.
+---
+
+### 5. Fichiers clés
+
+- **`CMakeLists.txt`**
+  - Déclare l’exécutable `bt_node_wrappers` :
+    - `src/bt_node_wrappers.cpp`.
+  - Dépendances :
+    - `rclcpp`, `rclcpp_action`, `ament_index_cpp`,
+    - `behaviortree_cpp`, `behaviortree_ros2`,
+    - `action_tutorials_interfaces`.
+  - Lie explicitement la lib BehaviorTree.CPP :
+    - `target_link_libraries(... behaviortree_cpp::behaviortree_cpp)`.
+
+- **`package.xml`**
+  - Dépendances runtime :
+    - `rclcpp`, `rclcpp_action`, `ament_index_cpp`,
+    - `behaviortree_cpp`, `behaviortree_ros2`,
+    - `action_tutorials_interfaces`.
+  - Type de build : `ament_cmake`.
+
+- **`include/ros2_integration_wrappers/fibonacci_ros_action_node.hpp`**
+  - Classe `FibonacciRosActionNode` :
+    - dérive de `BT::RosActionNode<action_tutorials_interfaces::action::Fibonacci>`,
+    - utilise les **wrappers BehaviorTree.ROS2** pour :
+      - création du client d’action,
+      - envoi de goal,
+      - gestion des callbacks / états.
+  - Ports BT :
+    - `InputPort<int>("order", 10, "Length of the Fibonacci sequence")`.
+  - Méthodes clés :
+    - `setGoal(Goal & goal)` :
+      - lit le port `order` et assigne `goal.order`.
+    - `onResultReceived(const WrappedResult & result)` :
+      - loggue la séquence renvoyée,
+      - renvoie `NodeStatus::SUCCESS` / `FAILURE` selon `result.code`.
+
+- **`src/bt_node_wrappers.cpp`**
+  - Fonction `main` :
+    - initialise ROS 2,
+    - crée `rclcpp::Node` + `SingleThreadedExecutor` dans un thread,
+    - crée un `BT::BehaviorTreeFactory`,
+    - configure `BT::RosNodeParams params` :
+      - `params.nh = node;`
+      - `params.default_port_value = "fibonacci";` (nom de l’action),
+      - `params.server_timeout = 5s;`.
+    - enregistre `FibonacciRosActionNode` avec un builder lambda capturant `params`,
+    - résout et charge `trees/fibonacci_ros2.xml`,
+    - exécute l’arbre avec `tickWhileRunning(10ms)`.
+
+- **`trees/fibonacci_ros2.xml`**
+  - Arbre XML minimal :
+    - **Séquence** `MainTree` avec un seul nœud :
+      - `<Action ID="FibonacciRosActionNode" order="10"/>`
+    - L’ID `FibonacciRosActionNode` correspond à la classe enregistrée dans la factory.
+
+---
+
+### 6. Flow ROS 2 – BehaviorTree.ROS2 en action
+
+1. **Serveur d’action Fibonacci** (`fibonacci_action_server`) tourne sur `/fibonacci`.
+2. **Client BT** (`bt_node_wrappers`) :
+   - crée un nœud ROS 2 et un `BT::BehaviorTreeFactory`,
+   - enregistre `FibonacciRosActionNode` (wrapper BehaviorTree.ROS2).
+3. **Behavior Tree** (XML) :
+   - décrit la logique : “appeler Fibonacci avec `order=10`”.
+4. **Nœud BT `FibonacciRosActionNode`** :
+   - construit un goal avec le port d’entrée `order`,
+   - envoie le goal via BehaviorTree.ROS2,
+   - reçoit le résultat, loggue la séquence,
+   - renvoie SUCCESS ou FAILURE à l’arbre.
+5. L’arbre se termine en SUCCESS si l’action réussi, en FAILURE sinon.
+
+---
+
+### 7. Extensions possibles
+
+- Modifier le port `order` dans le XML pour tester différentes longueurs de séquence.
+- Ajouter des nœuds BT de log ou de contrôle autour de `FibonacciRosActionNode` (séquences, fallback, répétitions, etc.).
+- S’inspirer de ce pattern pour appeler d’autres actions ROS 2 avec des wrappers `BT::RosActionNode<YourAction>` :
+  - implémenter `setGoal(...)` + `onResultReceived(...)`,
+  - enregistrer le nœud dans la factory,
+  - l’utiliser dans tes arbres XML.
 
 
