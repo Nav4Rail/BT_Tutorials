@@ -29,6 +29,13 @@ int main(int argc, char ** argv)
   handle->cmd_vel_pub =
     node->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
+  // Optionnel : attendre qu'au moins un abonné à /cmd_vel soit présent
+  // (typiquement le plugin de commande du TurtleBot3 dans Gazebo).
+  while (rclcpp::ok() && node->count_subscribers("cmd_vel") == 0) {
+    RCLCPP_INFO(node->get_logger(), "Waiting for /cmd_vel subscriber (robot spawn)...");
+    std::this_thread::sleep_for(500ms);
+  }
+
   BT::BehaviorTreeFactory factory;
   turtlebot_bt_sim::register_turtlebot_nodes(factory, handle);
 
