@@ -2,6 +2,9 @@
 */build/
 */dist/
 *.log
+build/
+install/
+log/
 .DS_Store
 node_modules/
 .env
