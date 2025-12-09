@@ -2,8 +2,62 @@
 
 #include <chrono>
 #include <fstream>
+#include <iostream>
 
 using namespace std::chrono_literals;
+
+namespace
+{
+
+class SaySomethingNode : public BT::SyncActionNode
+{
+public:
+  SaySomethingNode(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config)
+  {
+  }
+
+  static BT::PortsList providedPorts()
+  {
+    return { BT::InputPort<std::string>("message", "Hello from BT", "Message to print") };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    std::string msg;
+    (void)getInput("message", msg);
+    std::cout << "[BT] SaySomething: " << msg << std::endl;
+    return BT::NodeStatus::SUCCESS;
+  }
+};
+
+class WaitMsNode : public BT::SyncActionNode
+{
+public:
+  WaitMsNode(const std::string & name, const BT::NodeConfiguration & config)
+  : BT::SyncActionNode(name, config)
+  {
+  }
+
+  static BT::PortsList providedPorts()
+  {
+    return { BT::InputPort<int>("milliseconds", 1000, "Delay in milliseconds") };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    int ms = 1000;
+    (void)getInput("milliseconds", ms);
+    if (ms < 0) {
+      ms = 0;
+    }
+    std::cout << "[BT] WaitMs: sleeping for " << ms << " ms" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+    return BT::NodeStatus::SUCCESS;
+  }
+};
+
+}  // namespace
 
 BtActionServerNode::BtActionServerNode()
 : rclcpp::Node("bt_action_server_node")
@@ -111,34 +165,11 @@ void BtActionServerNode::execute_tree(
     result->message = "Tree finished with FAILURE";
     goal_handle->abort(result);
   }
-
 }
 
 void BtActionServerNode::register_simple_nodes()
 {
-  // Simple action qui affiche un message.
-  factory_.registerSimpleAction(
-    "SaySomething",
-    [](BT::TreeNode & self) -> BT::NodeStatus
-    {
-      auto msg = self.getInput<std::string>("message").value_or("Hello from BT");
-      std::cout << "[BT] SaySomething: " << msg << std::endl;
-      return BT::NodeStatus::SUCCESS;
-    });
-
-  // Simple action qui attend un certain temps (en millisecondes).
-  factory_.registerSimpleAction(
-    "WaitMs",
-    [](BT::TreeNode & self) -> BT::NodeStatus
-    {
-      int ms = self.getInput<int>("milliseconds").value_or(1000);
-      if (ms < 0) {
-        ms = 0;
-      }
-      std::cout << "[BT] WaitMs: sleeping for " << ms << " ms" << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-      return BT::NodeStatus::SUCCESS;
-    });
+  factory_.registerNodeType<SaySomethingNode>("SaySomething");
+  factory_.registerNodeType<WaitMsNode>("WaitMs");
 }
-
 
