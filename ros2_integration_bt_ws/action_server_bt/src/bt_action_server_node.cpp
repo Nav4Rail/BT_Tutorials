@@ -80,37 +80,18 @@ void BtActionServerNode::execute_tree(
   RCLCPP_INFO(get_logger(), "Loading BehaviorTree from: %s", tree_file.c_str());
 
   BT::Tree tree = factory_.createTreeFromFile(tree_file);
-
-  {
-    std::lock_guard<std::mutex> lock(tree_mutex_);
-    active_tree_ = std::make_shared<BT::Tree>(std::move(tree));
-  }
-
   stop_requested_.store(false);
 
   auto feedback = std::make_shared<RunTree::Feedback>();
 
-  const auto start_time = now();
-  BT::NodeStatus status = BT::NodeStatus::RUNNING;
+  // Exécute l'arbre en boucle interne BehaviorTree.CPP.
+  // Pour garder l'exemple simple, on ne préempte pas l'exécution en cours :
+  // une annulation sera prise en compte à la fin du tickWhileRunning.
+  BT::NodeStatus status = tree.tickWhileRunning(10ms);
 
-  while (rclcpp::ok() && !stop_requested_.load() && status == BT::NodeStatus::RUNNING) {
-    {
-      std::lock_guard<std::mutex> lock(tree_mutex_);
-      if (active_tree_) {
-        status = active_tree_->tickRoot();
-        feedback->current_node = active_tree_->rootNode()->name();
-      } else {
-        status = BT::NodeStatus::FAILURE;
-      }
-    }
-
-    goal_handle->publish_feedback(feedback);
-    RCLCPP_DEBUG(
-      get_logger(), "BT running for %.2f seconds",
-      (now() - start_time).seconds());
-
-    std::this_thread::sleep_for(50ms);
-  }
+  // Feedback final : nom du nœud racine (exemple minimal).
+  feedback->current_node = tree.rootNode()->name();
+  goal_handle->publish_feedback(feedback);
 
   auto result = std::make_shared<RunTree::Result>();
 
@@ -131,10 +112,6 @@ void BtActionServerNode::execute_tree(
     goal_handle->abort(result);
   }
 
-  {
-    std::lock_guard<std::mutex> lock(tree_mutex_);
-    active_tree_.reset();
-  }
 }
 
 void BtActionServerNode::register_simple_nodes()
