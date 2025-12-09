@@ -63,6 +63,9 @@ public:
       RCLCPP_INFO(rclcpp::get_logger("FibonacciRosActionNode"),
                   "FibonacciRosActionNode: action succeeded, sequence length=%zu",
                   result.result->sequence.size());
+      for (const auto & value : result.result->sequence) {
+        RCLCPP_INFO(rclcpp::get_logger("FibonacciRosActionNode"), "  %d", value);
+      }
       return BT::NodeStatus::SUCCESS;
     }
 

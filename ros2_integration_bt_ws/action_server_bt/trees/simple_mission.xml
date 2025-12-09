@@ -1,0 +1,11 @@
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="RootSequence">
+      <Action ID="SaySomething" message="Starting BT mission from action_server_bt"/>
+      <Action ID="WaitMs" milliseconds="1000"/>
+      <Action ID="SaySomething" message="BT mission finished"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
+
+
