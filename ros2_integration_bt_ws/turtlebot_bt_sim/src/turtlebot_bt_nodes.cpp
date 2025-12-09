@@ -10,6 +10,57 @@ namespace turtlebot_bt_sim
 namespace
 {
 
+class IdleNode : public BT::SyncActionNode
+{
+public:
+  IdleNode(const std::string & name,
+           const BT::NodeConfiguration & config,
+           std::shared_ptr<CmdVelHandle> handle)
+  : BT::SyncActionNode(name, config),
+    handle_(std::move(handle))
+  {
+  }
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<double>("duration", 2.0, "Duration of idle motion (seconds)")
+    };
+  }
+
+  BT::NodeStatus tick() override
+  {
+    double duration = 2.0;
+    (void)getInput("duration", duration);
+
+    auto twist = geometry_msgs::msg::Twist();
+    twist.linear.x = 0.0;
+    twist.angular.z = 0.0;
+
+    rclcpp::Rate rate(10.0);
+    const auto start = handle_->node->now();
+
+    RCLCPP_INFO(handle_->node->get_logger(),
+                "Idle: duration=%.2f s",
+                duration);
+
+    while (rclcpp::ok() &&
+           (handle_->node->now() - start).seconds() < duration) {
+      handle_->cmd_vel_pub->publish(twist);
+      rate.sleep();
+    }
+
+    twist.linear.x = 0.0;
+    twist.angular.z = 0.0;
+    handle_->cmd_vel_pub->publish(twist);
+
+    return BT::NodeStatus::SUCCESS;
+  }
+
+private:
+  std::shared_ptr<CmdVelHandle> handle_;
+};
+
 class DriveForwardNode : public BT::SyncActionNode
 {
 public:
@@ -169,6 +220,13 @@ private:
 void register_turtlebot_nodes(BT::BehaviorTreeFactory & factory,
                               const std::shared_ptr<CmdVelHandle> & handle)
 {
+  factory.registerBuilder<IdleNode>(
+    "Idle",
+    [handle](const std::string & name, const BT::NodeConfiguration & config)
+    {
+      return std::make_unique<IdleNode>(name, config, handle);
+    });
+
   factory.registerBuilder<DriveForwardNode>(
     "DriveForward",
     [handle](const std::string & name, const BT::NodeConfiguration & config)
