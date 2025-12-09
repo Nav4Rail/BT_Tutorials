@@ -23,6 +23,9 @@ public:
 
   BtActionServerNode();
 
+  /// Initialise le serveur d'action /run_tree une fois le node créé.
+  void init_action_server();
+
 private:
   rclcpp_action::Server<RunTree>::SharedPtr action_server_;
   BT::BehaviorTreeFactory factory_;

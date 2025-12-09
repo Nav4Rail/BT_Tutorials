@@ -10,6 +10,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
 
   auto node = std::make_shared<BtActionServerNode>();
+  node->init_action_server();
 
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(node);

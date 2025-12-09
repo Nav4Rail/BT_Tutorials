@@ -63,9 +63,16 @@ BtActionServerNode::BtActionServerNode()
 : rclcpp::Node("bt_action_server_node")
 {
   register_simple_nodes();
+}
+
+void BtActionServerNode::init_action_server()
+{
+  // IMPORTANT : ne pas appeler shared_from_this() dans le constructeur.
+  // Cette méthode doit être appelée APRÈS la création du shared_ptr<BtActionServerNode>.
+  auto self = shared_from_this();
 
   action_server_ = rclcpp_action::create_server<RunTree>(
-    shared_from_this(),
+    self,
     "run_tree",
     std::bind(&BtActionServerNode::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
     std::bind(&BtActionServerNode::handle_cancel, this, std::placeholders::_1),
