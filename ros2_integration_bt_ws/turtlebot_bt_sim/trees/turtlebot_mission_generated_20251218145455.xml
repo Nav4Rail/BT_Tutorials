@@ -1,0 +1,12 @@
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="MissionSequence">
+      <!-- Attente initiale -->
+      <Action ID="Idle" duration="5.0" />
+      <!-- Avance de 2m à 0.2m/s -->
+      <Action ID="DriveForward" duration="10.0" speed="0.2" />
+      <!-- Arrêt final -->
+      <Action ID="StopRobot" />
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -49,10 +49,11 @@ from xml.etree.ElementTree import (
     ElementTree,
 )
 
+import datetime
 
 DEFAULT_MODEL = os.getenv("LLM_MODEL", "mistral-medium")
 DEFAULT_XML_PATH = (
-    Path(__file__).resolve().parent / "trees" / "turtlebot_mission.xml"
+    Path(__file__).resolve().parent / "trees" / f"turtlebot_mission_generated_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.xml"
 )
 
 
@@ -73,6 +74,31 @@ class BtStep:
 
 
 ALLOWED_ACTIONS = {"Idle", "DriveForward", "Rotate", "StopRobot"}
+
+
+def _strip_markdown_fences(raw: str) -> str:
+    """
+    Certains LLM renvoient le JSON entouré de balises de code Markdown,
+    par exemple:
+
+    ```json
+    [ ... ]
+    ```
+
+    Cette fonction enlève ces balises éventuelles pour ne garder
+    que le JSON brut.
+    """
+    text = raw.strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        # Retirer la première ligne si c'est une fence ``` ou ```json
+        if lines and lines[0].lstrip().startswith("```"):
+            lines = lines[1:]
+        # Retirer la dernière ligne si c'est une fence ```
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    return text
 
 
 def _parse_steps_from_llm_output(raw: str) -> List[BtStep]:
@@ -97,8 +123,9 @@ def _parse_steps_from_llm_output(raw: str) -> List[BtStep]:
         ...
       ]
     """
+    cleaned = _strip_markdown_fences(raw)
     try:
-        data = json.loads(raw)
+        data = json.loads(cleaned)
     except Exception as exc:  # pragma: no cover
         raise RuntimeError(
             f"Réponse LLM non JSON.\nErreur: {exc}\nContenu:\n{raw}"
@@ -155,6 +182,12 @@ def call_llm_for_bt_steps(
     Pour Mistral, configurez `LLM_API_BASE` / `LLM_MODEL`
     selon votre déploiement.
     """
+    print(
+        f"Calling LLM for BT steps with model: {model} "
+        f"and api_base: {api_base}"
+    )
+    print(f"API key: {api_key}")
+    print(f"Natural language prompt: {natural_language_prompt}")
     try:
         from openai import OpenAI  # type: ignore
     except ImportError as exc:  # pragma: no cover
@@ -180,8 +213,8 @@ def call_llm_for_bt_steps(
         "- La sortie doit être UNIQUEMENT un JSON valide "
         "(aucun texte autour).\n"
         "- Le JSON est un tableau d'objets avec les clés possibles :\n"
-        "  - 'action' (obligatoire) : 'Idle' | 'DriveForward' | "
-        "'Rotate' | 'StopRobot'\n"
+        "  - 'action' (obligatoire) : "
+        "'Idle' | 'DriveForward' | 'Rotate' | 'StopRobot'\n"
         "  - 'duration' (optionnelle, float en secondes)\n"
         "  - 'speed' (optionnelle, float en m/s, pour DriveForward)\n"
         "  - 'angular_speed' (optionnelle, float en rad/s, "
@@ -347,7 +380,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--api-base",
         type=str,
-        default=os.getenv("LLM_API_BASE", "https://api.mistral.ai/v1/chat/completions"),
+        default=os.getenv("LLM_API_BASE", "https://api.mistral.ai/v1"),
         help=(
             "URL de base de l'API LLM (OpenAI-compatible). "
             "Peut aussi être définie via LLM_API_BASE."
