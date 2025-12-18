@@ -3,11 +3,11 @@
     <Sequence name="MissionSequence">
       <Action ID="Idle" duration="10.0"/>
       <!-- Avance tout droit -->
-      <Action ID="DriveForward" duration="5.0" speed="0.2"/>
+      <Action ID="DriveForward" duration="20.0" speed="0.2"/>
       <!-- Tourne sur place -->
       <Action ID="Rotate" duration="4.0" angular_speed="0.6"/>
       <!-- Avance à nouveau -->
-      <Action ID="DriveForward" duration="3.0" speed="0.2"/>
+      <!-- <Action ID="DriveForward" duration="3.0" speed="0.2"/> -->
       <!-- Arrêt de sécurité -->
       <Action ID="StopRobot"/>
     </Sequence>
