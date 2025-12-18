@@ -1,0 +1,16 @@
+<!-- Generated on 2025-12-19 00:17:09 -->
+<!-- Prompt: Attendre 5s, avancer 2m, puis s'arrêter. -->
+<!-- Model: mistral-large-latest -->
+<!-- API base: https://api.mistral.ai/v1 -->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="MissionSequence">
+      <!-- Attente initiale -->
+      <Action ID="Idle" duration="5.0" />
+      <!-- Avancer de 2 mètres -->
+      <Action ID="DriveForward" duration="10.0" speed="0.2" />
+      <!-- Arrêt final -->
+      <Action ID="StopRobot" />
+    </Sequence>
+  </BehaviorTree>
+</root>

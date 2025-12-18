@@ -324,12 +324,18 @@ def build_bt_xml(steps: List[BtStep]) -> ElementTree:
     _indent_xml(root)
     return tree
 
+def write_header_comment(output_path: Path, natural_language_prompt: str, model: str, api_base: str, api_key: str) -> None:
+    with open(output_path, "w") as f:
+        f.write(f"<!-- Generated on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -->\n")
+        f.write(f"<!-- Prompt: {natural_language_prompt} -->\n")
+        f.write(f"<!-- Model: {model} -->\n")
+        f.write(f"<!-- API base: {api_base} -->\n")
 
 def write_bt_xml(tree: ElementTree, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Pas de déclaration XML en tête, pour coller à l'exemple fourni.
-    tree.write(output_path, encoding="utf-8", xml_declaration=False)
-
+    # Écrit le behavior tree XML à la fin du fichier sans écraser le contenu précédent.
+    with open(output_path, "ab") as f:
+        tree.write(f, encoding="utf-8", xml_declaration=False)
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -451,6 +457,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         output_path = Path(args.output).resolve()
         try:
+            write_header_comment(output_path, natural_prompt, args.model, args.api_base, api_key)
             write_bt_xml(tree, output_path)
         except Exception as exc:
             print(
