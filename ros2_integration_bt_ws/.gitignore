@@ -4,6 +4,7 @@ log/
 test/
 test_results/
 tmp/
+temp/
 *.log
 *.log.*
 *.log.*.*

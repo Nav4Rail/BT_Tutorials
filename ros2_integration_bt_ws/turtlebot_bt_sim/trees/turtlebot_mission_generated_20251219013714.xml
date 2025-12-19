@@ -1,0 +1,20 @@
+<!-- Generated on 2025-12-19 01:37:17 -->
+<!-- Prompt: Attendre 3s, avancer 5m, puis tourner à gauche, ensuite avancer pendant 4s et s'arrêter. -->
+<!-- Model: mistral-large-latest -->
+<!-- API base: https://api.mistral.ai/v1 -->
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="MissionSequence">
+      <!-- Attente initiale -->
+      <Action ID="Idle" duration="3.0" />
+      <!-- Avancer 5m (vitesse ~0.2m/s) -->
+      <Action ID="DriveForward" duration="25.0" speed="0.2" />
+      <!-- Tourner à gauche (~90 degrés) -->
+      <Action ID="Rotate" duration="1.6" angular_speed="1.0" />
+      <!-- Avancer pendant 4s -->
+      <Action ID="DriveForward" duration="4.0" speed="0.2" />
+      <!-- Arrêt final -->
+      <Action ID="StopRobot" />
+    </Sequence>
+  </BehaviorTree>
+</root>

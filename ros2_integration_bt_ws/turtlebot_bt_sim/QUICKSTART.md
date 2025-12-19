@@ -8,29 +8,111 @@ Ce package met en place une **simulation TurtleBot3 sous Gazebo** et une **missi
     - `Idle`, `DriveForward`, `Rotate`, `StopRobot`.  
   - Ces nœuds BT publient des commandes `geometry_msgs/msg/Twist` sur `/cmd_vel`, ce qui fait bouger le robot dans Gazebo.
 
+Depuis ce projet, un **script de génération de Behavior Tree par LLM** (`gen_turtlebot_bt.py`) permet de produire automatiquement un XML de mission à partir d’un prompt en langage naturel, puis de l’exécuter dans la simulation.
+
 ---
 
-### 1. Pré‑requis
+### 1. Pré‑requis ROS 2 / Simulation
 
-- ROS 2 Humble installé (`/opt/ros/humble`).
-- Workspace principal (ex. `~/ros2_ws`) avec :
+- **ROS 2 Humble** installé (`/opt/ros/humble`).
+- **Workspace principal** (ex. `~/ros2_ws`) avec :
   - `turtlebot3_gazebo` installé et compilé,
   - les dépendances TurtleBot3 (modèles, descriptions, etc.),
   - Gazebo Classic fonctionnel.
-- Variable d’environnement TurtleBot3 (souvent requise par les launch officiels) :
+- **Variable d’environnement TurtleBot3** (souvent requise par les launch officiels) :
 
 ```bash
 export TURTLEBOT3_MODEL=burger    # ou waffle, waffle_pi
 ```
 
-- Ce workspace BT : `.../BT_Tutorials/ros2_integration_bt_ws` avec le package `turtlebot_bt_sim`.
-- `BehaviorTree.CPP` disponible (paquet CMake `behaviortree_cpp`).
+- **Workspace BT** : `~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws` avec le package `turtlebot_bt_sim`.
+- **BehaviorTree.CPP** disponible (paquet CMake `behaviortree_cpp`).
 
 ---
 
-### 2. Compilation du package
+### 2. Pré‑requis LLM et script `gen_turtlebot_bt.py`
 
-Dans un terminal sourcé ROS 2 + workspace principal :
+Le script `turtlebot_bt_sim/gen_turtlebot_bt.py` :
+
+- reçoit un **prompt en langage naturel** décrivant la mission du TurtleBot,
+- appelle un **LLM compatible API OpenAI** (ex. Mistral),
+- récupère une liste d’étapes simples (JSON) : `Idle`, `DriveForward`, `Rotate`, `StopRobot`,
+- génère un **fichier XML BehaviorTree.CPP** strictement compatible avec les nœuds BT de `turtlebot_bt_sim`.
+
+#### 2.1. Paquets Python nécessaires
+
+Dans l’environnement Python utilisé pour lancer le script :
+
+```bash
+pip install openai python-dotenv
+```
+
+- **`openai`** : client OpenAI v1, compatible avec l’API Mistral (mode OpenAI‑like).
+- **`python-dotenv`** : permet de charger automatiquement un fichier `.env` (variables `LLM_API_KEY`, etc.).
+
+#### 2.2. Variables d’environnement LLM
+
+Le script lit les variables suivantes :
+
+- **`LLM_API_KEY`** : clé API de votre provider (obligatoire si `--api-key` n’est pas passé en argument).
+- **`LLM_API_BASE`** : URL de base de l’API (compatible OpenAI).
+  - Pour Mistral :
+
+    ```bash
+    export LLM_API_BASE="https://api.mistral.ai/v1"
+    ```
+
+- **`LLM_MODEL`** : nom du modèle LLM à utiliser.
+  - Par défaut, le script utilise `mistral-large-latest` si `LLM_MODEL` est absent.
+
+Exemple de configuration Mistral dans le shell :
+
+```bash
+export LLM_API_KEY="YOUR_MISTRAL_KEY"
+export LLM_API_BASE="https://api.mistral.ai/v1"
+export LLM_MODEL="mistral-large-latest"
+```
+
+#### 2.3. Fichier `.env` (optionnel)
+
+`gen_turtlebot_bt.py` charge automatiquement un fichier `.env` (grâce à `python-dotenv`) s’il est présent dans le répertoire courant.  
+Cela permet d’éviter d’exporter les variables à chaque nouveau terminal.
+
+Exemple de `.env` à placer dans `ros2_integration_bt_ws/turtlebot_bt_sim` :
+
+```bash
+LLM_API_KEY="YOUR_MISTRAL_KEY"
+LLM_API_BASE="https://api.mistral.ai/v1"
+LLM_MODEL="mistral-large-latest"
+```
+
+Les variables déjà présentes dans l’environnement **ne sont pas écrasées** par le `.env`.
+
+#### 2.4. Utilisation simple du script
+
+Depuis `ros2_integration_bt_ws/turtlebot_bt_sim` :
+
+```bash
+cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws/turtlebot_bt_sim
+
+python3 gen_turtlebot_bt.py --prompt "Attendre 5s, avancer 2m, puis s'arrêter."
+```
+
+Le script :
+
+- appelle le LLM,
+- génère un fichier XML dans `trees/` nommé par défaut :
+  - `trees/turtlebot_mission_generated_<timestamp>.xml`,
+- écrit en tête de fichier des commentaires XML contenant :
+  - la date/heure de génération,
+  - le prompt,
+  - le modèle et l’URL d’API utilisés.
+
+---
+
+### 3. Compilation du package
+
+Dans un terminal **sourcé ROS 2 + workspace principal** :
 
 ```bash
 source /opt/ros/humble/setup.bash
@@ -44,34 +126,168 @@ source install/setup.bash
 
 ---
 
-### 3. Lancer la simulation + Behavior Tree
+### 4. Pipeline complète LLM → BT → ROS 2
 
-Dans un terminal sourcé (ROS 2 + `~/ros2_ws` + workspace BT) :
+Cette section décrit le **flux complet**, depuis le prompt utilisateur jusqu’à l’exécution du Behavior Tree dans Gazebo.
+
+#### 4.1. Configurer les variables LLM
+
+Dans un terminal :
 
 ```bash
-source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
-cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws
-source install/setup.bash
+export LLM_API_KEY="YOUR_MISTRAL_KEY"
+export LLM_API_BASE="https://api.mistral.ai/v1"
+export LLM_MODEL="mistral-large-latest"
+```
 
+ou bien définir ces variables dans un **fichier `.env`** placé dans `turtlebot_bt_sim/` (voir §2.3).
+
+#### 4.2. Générer un Behavior Tree à partir d’un prompt
+
+```bash
+cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws/turtlebot_bt_sim
+
+python3 gen_turtlebot_bt.py --prompt "Attendre 5s, avancer 2m, puis s'arrêter."
+```
+
+Un fichier du type :
+
+```text
+trees/turtlebot_mission_generated_20251219001714.xml
+```
+
+est créé.
+
+#### 4.3. Sauvegarder l’ancien Behavior Tree
+
+Avant de remplacer `turtlebot_mission.xml`, on crée un backup daté :
+
+```bash
+cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws/turtlebot_bt_sim
+
+if [ -f trees/turtlebot_mission.xml ]; then
+  cp trees/turtlebot_mission.xml \
+     "trees/turtlebot_mission_backup_$(date +%Y%m%d%H%M%S).xml"
+fi
+```
+
+#### 4.4. Remplacer le Behavior Tree principal
+
+Supposons que le nouveau fichier généré soit `trees/turtlebot_mission_generated_20251219001714.xml` :
+
+```bash
+cp trees/turtlebot_mission_generated_20251219001714.xml \
+   trees/turtlebot_mission.xml
+```
+
+À partir de là, le nœud `turtlebot_bt_node` exécutera ce nouvel arbre.
+
+#### 4.5. Recompiler le package et sourcer l’environnement
+
+```bash
+cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws
+
+colcon build --packages-select turtlebot_bt_sim
+source install/setup.bash
+```
+
+#### 4.6. Lancer Gazebo + Behavior Tree
+
+```bash
 export TURTLEBOT3_MODEL=burger
 
 ros2 launch turtlebot_bt_sim turtlebot_bt_sim.launch.py
 ```
 
-Ce launch :
-- inclut `turtlebot3_world.launch.py` depuis `turtlebot3_gazebo` (robot + monde Gazebo),
-- démarre le nœud BT `turtlebot_bt_node` qui pilote `/cmd_vel`.
+---
 
-Pour vérifier la commande envoyée au robot :
+### 5. Script bash de pipeline complet (LLM → BT → ROS 2)
+
+Pour automatiser toute la chaîne, un script bash peut être utilisé (par exemple `run_turtlebot_bt_pipeline.sh` à la racine du workspace BT).
+
+Exemple de script :
 
 ```bash
-ros2 topic echo /cmd_vel
+#!/usr/bin/env bash
+set -euo pipefail
+
+log() {
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] [INFO] $*"
+}
+
+err() {
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] [ERROR] $*" >&2
+}
+
+PROMPT="${1:-}"
+
+if [ -z "$PROMPT" ]; then
+  read -rp "Description de la mission (prompt LLM) : " PROMPT
+fi
+
+# Chemins par défaut (adaptables via variables d'environnement)
+ROS_MAIN_WS="${ROS_MAIN_WS:-$HOME/ros2_ws}"
+BT_WS="${BT_WS:-$HOME/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws}"
+
+log "Sourcing ROS 2 Humble et workspace principal..."
+source /opt/ros/humble/setup.bash
+source "$ROS_MAIN_WS/install/setup.bash"
+
+cd "$BT_WS"
+log "Sourcing workspace BT..."
+source install/setup.bash
+
+export TURTLEBOT3_MODEL="${TURTLEBOT3_MODEL:-burger}"
+log "TURTLEBOT3_MODEL=$TURTLEBOT3_MODEL"
+
+cd "$BT_WS/turtlebot_bt_sim"
+
+log "Génération du Behavior Tree via LLM..."
+python3 gen_turtlebot_bt.py --prompt "$PROMPT"
+
+LATEST_XML="$(ls -1t trees/turtlebot_mission_generated_*.xml | head -n 1)"
+
+if [ -z "$LATEST_XML" ] || [ ! -f "$LATEST_XML" ]; then
+  err "Aucun fichier généré trouvé dans trees/turtlebot_mission_generated_*.xml"
+  exit 1
+fi
+
+log "Dernier Behavior Tree généré : $LATEST_XML"
+
+if [ -f trees/turtlebot_mission.xml ]; then
+  BACKUP="trees/turtlebot_mission_backup_$(date +'%Y%m%d%H%M%S').xml"
+  log "Backup de trees/turtlebot_mission.xml vers $BACKUP"
+  cp trees/turtlebot_mission.xml "$BACKUP"
+else
+  log "Pas de fichier trees/turtlebot_mission.xml existant, pas de backup créé."
+fi
+
+log "Remplacement de trees/turtlebot_mission.xml par $LATEST_XML"
+cp "$LATEST_XML" trees/turtlebot_mission.xml
+
+cd "$BT_WS"
+log "Compilation de turtlebot_bt_sim..."
+colcon build --packages-select turtlebot_bt_sim
+source install/setup.bash
+
+log "Lancement de Gazebo + Behavior Tree..."
+ros2 launch turtlebot_bt_sim turtlebot_bt_sim.launch.py
 ```
+
+Utilisation :
+
+```bash
+cd ~/studies/dev/nav4rails/BT_Tutorials/ros2_integration_bt_ws
+chmod +x run_turtlebot_bt_pipeline.sh
+
+./run_turtlebot_bt_pipeline.sh "Attendre 5s, avancer 2m, puis s'arrêter."
+```
+
+ou sans argument, le script vous demandera le prompt au clavier.
 
 ---
 
-### 4. Fichiers clés
+### 6. Fichiers clés
 
 - **`CMakeLists.txt`**
   - Exécutable `turtlebot_bt_node` :
@@ -176,7 +392,7 @@ ros2 topic echo /cmd_vel
 
 ---
 
-### 5. Flow ROS 2 – de Gazebo au Behavior Tree
+### 7. Flow ROS 2 – de Gazebo au Behavior Tree
 
 1. **Gazebo + TurtleBot3** (via `turtlebot3_gazebo`) :
    - spawn le robot dans un monde standard,
@@ -195,7 +411,7 @@ ros2 topic echo /cmd_vel
 
 ---
 
-### 6. Extensions possibles
+### 8. Extensions possibles
 
 - Modifier `turtlebot_mission.xml` pour créer des **missions plus riches** :
   - patrouilles, boucles, séquences conditionnelles, etc.
@@ -204,5 +420,3 @@ ros2 topic echo /cmd_vel
   - un nœud qui vérifie une condition (distance à un obstacle, etc.).
 - Intégrer BehaviorTree.ROS2 (comme dans `ros2_integration_wrappers`) :
   - par exemple, pour appeler des actions de navigation `nav2` directement depuis l’arbre BT.
-
-
