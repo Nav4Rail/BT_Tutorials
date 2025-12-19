@@ -42,18 +42,28 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from xml.etree.ElementTree import (
-    Element,
-    SubElement,
-    Comment,
-    ElementTree,
-)
+from xml.etree.ElementTree import Element, SubElement, Comment, ElementTree
 
 import datetime
 
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "mistral-medium")
+try:  # Support d'un fichier .env facultatif
+    from dotenv import load_dotenv  # type: ignore
+except ImportError:  # pragma: no cover
+    load_dotenv = None
+
+if load_dotenv is not None:
+    # Charge les variables d'environnement depuis un éventuel fichier .env
+    # (sans écraser les variables déjà définies dans l'environnement).
+    load_dotenv()
+
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "mistral-large-latest")
 DEFAULT_XML_PATH = (
-    Path(__file__).resolve().parent / "trees" / f"turtlebot_mission_generated_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.xml"
+    Path(__file__).resolve().parent
+    / "trees"
+    / (
+        "turtlebot_mission_generated_"
+        f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.xml"
+    )
 )
 
 
@@ -324,16 +334,26 @@ def build_bt_xml(steps: List[BtStep]) -> ElementTree:
     _indent_xml(root)
     return tree
 
-def write_header_comment(output_path: Path, natural_language_prompt: str, model: str, api_base: str, api_key: str) -> None:
-    with open(output_path, "w") as f:
-        f.write(f"<!-- Generated on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -->\n")
+
+def write_header_comment(
+    output_path: Path,
+    natural_language_prompt: str,
+    model: str,
+    api_base: str,
+    api_key: str,
+) -> None:
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"<!-- Generated on {timestamp} -->\n")
         f.write(f"<!-- Prompt: {natural_language_prompt} -->\n")
         f.write(f"<!-- Model: {model} -->\n")
         f.write(f"<!-- API base: {api_base} -->\n")
 
+
 def write_bt_xml(tree: ElementTree, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Écrit le behavior tree XML à la fin du fichier sans écraser le contenu précédent.
+    # Écrit le Behavior Tree XML à la fin du fichier sans écraser
+    # le contenu précédent.
     with open(output_path, "ab") as f:
         tree.write(f, encoding="utf-8", xml_declaration=False)
 
@@ -457,7 +477,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         output_path = Path(args.output).resolve()
         try:
-            write_header_comment(output_path, natural_prompt, args.model, args.api_base, api_key)
+            write_header_comment(
+                output_path,
+                natural_prompt,
+                args.model,
+                args.api_base,
+                api_key,
+            )
             write_bt_xml(tree, output_path)
         except Exception as exc:
             print(
